@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h1 {
+            margin-bottom: 30px;
+            color: #333;
+            text-align: center;
+        }
+        .welcome-section {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        .welcome-text {
+            font-size: 18px;
+            color: #555;
+            margin-bottom: 20px;
+        }
+        .nav-group {
+            margin-bottom: 20px;
+        }
+        .nav-group h2 {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .nav-links {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        a {
+            display: inline-block;
+            padding: 12px 20px;
+            background-color: #0066cc;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+            text-align: center;
+        }
+        a:hover {
+            background-color: #0052a3;
+        }
+        .danger-link {
+            background-color: #d32f2f;
+        }
+        .danger-link:hover {
+            background-color: #b71c1c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Internia</h1>
+
+        {% if current_user %}
+            <div class="welcome-section">
+                <div class="welcome-text">Bem-vindo, <strong>{{ current_user.nome }}</strong></div>
+                <div class="nav-links">
+                    <a href="{{ url_for('dashboard') }}">Ver Anúncios</a>
+                </div>
+            </div>
+
+            <div class="nav-group">
+                <h2>Minha Conta</h2>
+                <div class="nav-links">
+                    <a href="{{ url_for('editar', user_id=current_user.id) }}">Editar Informação</a>
+                    <a href="{{ url_for('logout') }}">Terminar Sessão</a>
+                    <a href="{{ url_for('apagar', user_id=current_user.id) }}" class="danger-link">Apagar Conta</a>
+                </div>
+            </div>
+        {% else %}
+            <div class="nav-group">
+                <h2>Bem-vindo</h2>
+                <div class="nav-links">
+                    <a href="{{ url_for('registar') }}">Registar</a>
+                    <a href="{{ url_for('login') }}">Iniciar Sessão</a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>
