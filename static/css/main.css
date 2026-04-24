@@ -1,0 +1,38 @@
+:root{
+    --primary:#0066cc;
+    --primary-dark:#0052a3;
+    --muted:#f5f5f5;
+    --card:#ffffff;
+    --radius:8px;
+}
+*{box-sizing:border-box}
+body{font-family:Inter, Arial, Helvetica, sans-serif;background:var(--muted);margin:0;padding:0;padding-top:64px;color:#222}
+header.topbar{position:fixed;top:0;left:0;right:0;height:64px;background:linear-gradient(90deg,var(--primary),var(--primary-dark));display:flex;align-items:center;justify-content:space-between;padding:0 20px;box-shadow:0 2px 8px rgba(0,0,0,0.08);z-index:20}
+.brand{color:white;font-weight:700;font-size:18px;text-decoration:none}
+nav.top-actions{display:flex;gap:10px;align-items:center}
+.btn{display:inline-block;padding:8px 14px;background:rgba(255,255,255,0.12);color:white;text-decoration:none;border-radius:6px;font-weight:600;backdrop-filter: blur(4px);transition:transform .18s ease, background .18s ease}
+.btn:hover{transform:translateY(-2px);background:rgba(255,255,255,0.18)}
+main.container{max-width:980px;margin:24px auto;padding:28px;background:var(--card);border-radius:var(--radius);box-shadow:0 6px 20px rgba(16,24,40,0.06);animation:fadeIn .28s ease both}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.fade-up{animation:fadeUp .32s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+/* Utilities */
+.row{display:flex;gap:12px;align-items:center}
+.right{margin-left:auto}
+.small{font-size:13px;color:#666}
+
+/* Form defaults used across templates */
+label{display:block;margin-bottom:6px;color:#374151;font-weight:600}
+input, textarea, select{width:100%;padding:10px;border-radius:8px;border:1px solid #e6edf3;font-family:inherit}
+input:focus, textarea:focus, select:focus{outline:none;box-shadow:0 0 6px rgba(0,102,204,0.12);border-color:var(--primary)}
+.form-group{margin-bottom:12px}
+
+/* Small helpers */
+.error-message{color:#b91c1c;padding:10px;border-radius:6px;background:#fff1f2}
+.danger-link{background:#d32f2f;color:#fff;padding:8px 12px;border-radius:6px;text-decoration:none}
+
+@media (max-width:640px){
+    main.container{margin:12px;padding:16px}
+    header.topbar{padding:0 12px}
+}
+

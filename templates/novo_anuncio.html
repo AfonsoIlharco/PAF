@@ -1,97 +1,32 @@
-<!DOCTYPE html>
-<html lang="pt-PT">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Criar Anúncio</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f5f5f5;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
-        .container {
-            background-color: white;
-            padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 500px;
-        }
-        h1 {
-            margin-bottom: 30px;
-            color: #333;
-            text-align: center;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #555;
-            font-weight: bold;
-        }
-        input, textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            font-family: Arial, sans-serif;
-        }
-        input:focus, textarea:focus {
-            outline: none;
-            border-color: #0066cc;
-            box-shadow: 0 0 5px rgba(0, 102, 204, 0.3);
-        }
-        button {
-            width: 100%;
-            padding: 12px;
-            background-color: #0066cc;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0052a3;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Criar Anúncio</h1>
+{% extends 'base.html' %}
+
+{% block title %}Criar Anúncio - Internia{% endblock %}
+
+{% block content %}
+    <div style="max-width:600px;margin:0 auto">
+        <h1 style="margin-bottom:12px">Criar Anúncio</h1>
         <form method="POST" action="{{ url_for('novo_anuncio') }}">
-            <div class="form-group">
-                <label for="titulo">Título</label>
-                <input type="text" id="titulo" name="titulo" placeholder="Título" required>
+            <div style="display:flex;flex-direction:column;gap:12px">
+                <div>
+                    <label style="display:block;margin-bottom:6px;color:#374151;font-weight:600">Título</label>
+                    <input type="text" id="titulo" name="titulo" placeholder="Título" required style="width:100%;padding:10px;border-radius:8px;border:1px solid #e6edf3" />
+                </div>
+                <div>
+                    <label style="display:block;margin-bottom:6px;color:#374151;font-weight:600">Descrição</label>
+                    <textarea id="descricao" name="descricao" placeholder="Descrição" rows="3" required style="width:100%;padding:10px;border-radius:8px;border:1px solid #e6edf3"></textarea>
+                </div>
+                <div style="display:flex;gap:12px">
+                    <div style="flex:1">
+                        <label style="display:block;margin-bottom:6px;color:#374151;font-weight:600">Hora Entrada</label>
+                        <input type="time" id="hora_entrada" name="hora_entrada" required style="width:100%;padding:10px;border-radius:8px;border:1px solid #e6edf3" />
+                    </div>
+                    <div style="flex:1">
+                        <label style="display:block;margin-bottom:6px;color:#374151;font-weight:600">Hora Saída</label>
+                        <input type="time" id="hora_saida" name="hora_saida" required style="width:100%;padding:10px;border-radius:8px;border:1px solid #e6edf3" />
+                    </div>
+                </div>
+                <button class="btn" type="submit">Criar Anúncio</button>
             </div>
-            <div class="form-group">
-                <label for="descricao">Descrição</label>
-                <textarea id="descricao" name="descricao" placeholder="Descrição" rows="3" required></textarea>
-            </div>
-            <div class="form-group">
-                <label for="hora_entrada">Horas de Entrada</label>
-                <input type="time" id="hora_entrada" name="hora_entrada" placeholder="09:00" required>
-            </div>
-            <div class="form-group">
-                <label for="hora_saida">Horas de Saída</label>
-                <input type="time" id="hora_saida" name="hora_saida" placeholder="17:00" required>
-            </div>
-            <button type="submit">Criar Anúncio</button>
         </form>
     </div>
-</body>
-</html>
+{% endblock %}

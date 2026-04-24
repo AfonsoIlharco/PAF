@@ -1,45 +1,37 @@
-<!DOCTYPE html>
-<html lang="pt-PT">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Candidatos</title>
-    <style>
-        body { font-family: Arial, sans-serif; background:#f5f5f5; padding:20px; }
-        .container { background:white; max-width:800px; margin:0 auto; padding:30px; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.1); }
-        h1 { text-align:center; color:#333; margin-bottom:20px; }
-        .applicant { padding:15px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; }
-        .applicant:last-child{ border-bottom: none; }
-        .applicant .meta { color:#666; font-size:14px; }
-        .back { display:inline-block; margin-top:20px; padding:10px 16px; background:#0066cc; color:white; text-decoration:none; border-radius:4px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Candidatos para: {{ anuncio.titulo }}</h1>
+{% extends 'base.html' %}
+
+{% block title %}Candidatos - {{ anuncio.titulo }}{% endblock %}
+
+{% block content %}
+    <div>
+        <h1 style="margin:0 0 12px 0">Candidatos para: {{ anuncio.titulo }}</h1>
 
         {% if candidaturas %}
-            {% for cand in candidaturas %}
-                <div class="applicant">
-                    <div>
-                        <div><strong>{{ cand.user.nome }}</strong> ({{ cand.user.email }})</div>
-                        <div class="meta">Candidatado em: {{ cand.created_at.strftime('%Y-%m-%d %H:%M') if cand.created_at else '' }}</div>
-                        {% if cand.mensagem %}
-                            <div class="meta">Mensagem: {{ cand.mensagem }}</div>
-                        {% endif %}
+            <div style="display:flex;flex-direction:column;gap:10px">
+                {% for cand in candidaturas %}
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:14px;border-radius:8px;background:#f8fafc;border:1px solid #eef2ff">
+                        <div>
+                            <div style="font-weight:700">{{ cand.user.nome }}</div>
+                            <div class="small">{{ cand.user.email }}</div>
+                            <div class="small" style="margin-top:6px">Candidatado em: {{ cand.created_at.strftime('%Y-%m-%d %H:%M') if cand.created_at else '' }}</div>
+                            {% if cand.mensagem %}
+                                <div style="margin-top:8px;color:#374151">Mensagem: {{ cand.mensagem }}</div>
+                            {% endif %}
+                        </div>
+                        <div>
+                            {% if cand.user.cv_path %}
+                                <a class="btn" href="/{{ cand.user.cv_path }}" target="_blank">Ver CV</a>
+                            {% endif %}
+                        </div>
                     </div>
-                    <div>
-                        {% if cand.user.cv_path %}
-                            <a href="/{{ cand.user.cv_path }}" target="_blank">Ver CV</a>
-                        {% endif %}
-                    </div>
-                </div>
-            {% endfor %}
+                {% endfor %}
+            </div>
         {% else %}
-            <p>Nenhuma candidatura ainda.</p>
+            <p style="color:#6b7280">Nenhuma candidatura ainda.</p>
         {% endif %}
 
-        <a class="back" href="{{ url_for('dashboard') }}">Voltar</a>
+        <div style="margin-top:18px">
+            <a class="btn" href="{{ url_for('dashboard') }}">Voltar</a>
+        </div>
     </div>
-</body>
-</html>
+{% endblock %}
