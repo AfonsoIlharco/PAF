@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Internia{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    {% block head_extra %}{% endblock %}
+    <script>
+        // small progressive enhancement if needed
+        document.addEventListener('DOMContentLoaded', function(){
+            // no-op for now; kept for future animations
+        })
+    </script>
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" href="{{ url_for('home') }}">Internia</a>
+        <nav class="top-actions">
+            <a class="btn" href="{{ url_for('home') }}">Home</a>
+            {% if session.get('user_id') %}
+                <span class="small">Olá, {{ session.get('nome') }}</span>
+                {% if session.get('role') == 'empresa' %}
+                    <a class="btn" href="{{ url_for('dashboard') }}">Anúncios</a>
+                    <a class="btn" href="{{ url_for('logout') }}">Sair</a>
+                {% else %}
+                    <a class="btn" href="{{ url_for('dashboard') }}">Anúncios</a>
+                    <a class="btn" href="{{ url_for('logout') }}">Sair</a>
+                {% endif %}
+            {% else %}
+                <a class="btn" href="{{ url_for('login') }}">Entrar</a>
+            {% endif %}
+        </nav>
+    </header>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>
+
