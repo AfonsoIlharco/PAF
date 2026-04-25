@@ -4,29 +4,29 @@
 
 {% block content %}
     <div class="fade-up">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap">
-            <h1 style="margin:0">Anúncios</h1>
+        <div class="row mb-18 wrap">
+            <h1 class="no-margin">Anúncios</h1>
             <a href="{{ url_for('novo_anuncio') }}" class="btn right">Criar Novo Anúncio</a>
         </div>
 
         {% if anuncios %}
-            <ul style="list-style:none;padding:0;margin:0;">
+            <ul class="list-reset">
                 {% for anuncio in anuncios %}
-                    <li style="display:flex;justify-content:space-between;align-items:center;padding:18px;border-radius:10px;margin-bottom:12px;background:#f7f9fc;border-left:4px solid var(--primary);">
-                        <div style="flex:1">
-                            <div style="font-weight:700;font-size:18px;color:#1f2937">{{ anuncio.titulo }}</div>
-                            <div style="color:#4b5563;margin-top:6px">{{ anuncio.descricao }}</div>
+                    <li class="ad-item">
+                        <div class="content">
+                            <div class="title">{{ anuncio.titulo }}</div>
+                            <div class="description">{{ anuncio.descricao }}</div>
                         </div>
 
-                        <div style="display:flex;gap:8px;align-items:center;margin-left:12px">
+                        <div class="ad-actions">
                             <a href="{{ url_for('info_empresa', ad_id=anuncio.id) }}" class="btn">Contactar</a>
 
                             {% if current_user and current_user.role == 'user' %}
                                 {% if anuncio.id in applied_ad_ids %}
-                                    <span style="background:#e5e7eb;color:#374151;padding:8px 12px;border-radius:8px;font-weight:600">Candidatado</span>
+                                    <span class="status-badge">Candidatado</span>
                                 {% else %}
-                                    <form style="display:flex;gap:8px;align-items:center;margin:0" method="POST" action="{{ url_for('apply_to_ad', ad_id=anuncio.id) }}">
-                                        <input name="mensagem" type="text" placeholder="Mensagem (opcional)" style="padding:8px;border-radius:8px;border:1px solid #e5e7eb;min-width:200px" />
+                                    <form class="hstack gap-8" method="POST" action="{{ url_for('apply_to_ad', ad_id=anuncio.id) }}">
+                                        <input name="mensagem" type="text" placeholder="Mensagem (opcional)" class="apply-input" />
                                         <button class="btn" type="submit">Candidatar</button>
                                     </form>
                                 {% endif %}
@@ -40,7 +40,7 @@
                 {% endfor %}
             </ul>
         {% else %}
-            <div style="text-align:center;color:#6b7280;padding:40px 12px;font-style:italic">Nenhum anúncio disponível no momento.</div>
+            <div class="muted-italic">Nenhum anúncio disponível no momento.</div>
         {% endif %}
     </div>
 {% endblock %}

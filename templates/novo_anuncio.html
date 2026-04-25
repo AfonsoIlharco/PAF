@@ -3,26 +3,26 @@
 {% block title %}Criar Anúncio - Internia{% endblock %}
 
 {% block content %}
-    <div style="max-width:600px;margin:0 auto">
-        <h1 style="margin-bottom:12px">Criar Anúncio</h1>
+    <div class="max-width-center">
+        <h1 class="mb-12">Criar Anúncio</h1>
         <form method="POST" action="{{ url_for('novo_anuncio') }}">
-            <div style="display:flex;flex-direction:column;gap:12px">
-                <div>
-                    <label style="display:block;margin-bottom:6px;color:#374151;font-weight:600">Título</label>
-                    <input type="text" id="titulo" name="titulo" placeholder="Título" required style="width:100%;padding:10px;border-radius:8px;border:1px solid #e6edf3" />
+            <div class="vstack">
+                <div class="form-group">
+                    <label>Título</label>
+                    <input type="text" id="titulo" name="titulo" placeholder="Título" required />
                 </div>
-                <div>
-                    <label style="display:block;margin-bottom:6px;color:#374151;font-weight:600">Descrição</label>
-                    <textarea id="descricao" name="descricao" placeholder="Descrição" rows="3" required style="width:100%;padding:10px;border-radius:8px;border:1px solid #e6edf3"></textarea>
+                <div class="form-group">
+                    <label>Descrição</label>
+                    <textarea id="descricao" name="descricao" placeholder="Descrição" rows="3" required></textarea>
                 </div>
-                <div style="display:flex;gap:12px">
-                    <div style="flex:1">
-                        <label style="display:block;margin-bottom:6px;color:#374151;font-weight:600">Hora Entrada</label>
-                        <input type="time" id="hora_entrada" name="hora_entrada" required style="width:100%;padding:10px;border-radius:8px;border:1px solid #e6edf3" />
+                <div class="hstack">
+                    <div class="flex-1">
+                        <label>Hora Entrada</label>
+                        <input type="time" id="hora_entrada" name="hora_entrada" required />
                     </div>
-                    <div style="flex:1">
-                        <label style="display:block;margin-bottom:6px;color:#374151;font-weight:600">Hora Saída</label>
-                        <input type="time" id="hora_saida" name="hora_saida" required style="width:100%;padding:10px;border-radius:8px;border:1px solid #e6edf3" />
+                    <div class="flex-1">
+                        <label>Hora Saída</label>
+                        <input type="time" id="hora_saida" name="hora_saida" required />
                     </div>
                 </div>
                 <button class="btn" type="submit">Criar Anúncio</button>

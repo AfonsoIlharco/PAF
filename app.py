@@ -32,11 +32,11 @@ import pathlib
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Initialize SQLAlchemy with the Flask app
+# Inicializar SQLAlchemy com a aplicação Flask
 db.init_app(app)
 
-# Import models after the app and db are initialized to avoid
-# the SQLAlchemy "not registered with this 'SQLAlchemy' instance" error
+# Importar modelos após a app e db serem inicializadas para evitar
+# o erro SQLAlchemy "not registered with this 'SQLAlchemy' instance"
 from models import User, Empresa, Anuncio, Candidatura
 
 # Extensões de ficheiro permitidas para upload (logo, CVs, fotos de perfil, etc.)
@@ -70,8 +70,8 @@ def _remove_file_if_exists(rel_path):
     """
     if not rel_path:
         return False
-    # normalize and prevent path traversal
-    # assume stored paths are relative to the 'static' folder
+    # normalizar e prevenir path traversal
+    # assumir caminhos guardados são relativos ao arquivo 'static'
     try:
         base = pathlib.Path(app.static_folder).resolve()
         target = (base / rel_path).resolve()

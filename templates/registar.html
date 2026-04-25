@@ -3,31 +3,31 @@
 {% block title %}Registar - Internia{% endblock %}
 
 {% block content %}
-    <div style="max-width:520px;margin:0 auto">
-        <h1 style="text-align:center;margin-bottom:18px">Registar Utilizador</h1>
+    <div class="max-width-center">
+        <h1 class="center-text mb-14">Registar Utilizador</h1>
         <form method="POST" action="{{ url_for('registar') }}">
-            <div style="display:flex;flex-direction:column;gap:12px">
-                <div>
-                    <label style="display:block;margin-bottom:6px;color:#374151;font-weight:600">Nome / Nome da Empresa</label>
-                    <input type="text" id="nome" name="nomeForm" placeholder="Nome" required style="width:100%;padding:10px;border-radius:8px;border:1px solid #e6edf3" />
+            <div class="vstack">
+                <div class="form-group">
+                    <label>Nome / Nome da Empresa</label>
+                    <input type="text" id="nome" name="nomeForm" placeholder="Nome" required />
                 </div>
-                <div>
-                    <label style="display:block;margin-bottom:6px;color:#374151;font-weight:600">Email</label>
-                    <input type="email" id="email" name="emailForm" placeholder="Email" required style="width:100%;padding:10px;border-radius:8px;border:1px solid #e6edf3" />
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="email" name="emailForm" placeholder="Email" required />
                 </div>
-                <div>
-                    <label style="display:block;margin-bottom:6px;color:#374151;font-weight:600">Password</label>
-                    <input type="password" id="password" name="passwordForm" placeholder="Password" required style="width:100%;padding:10px;border-radius:8px;border:1px solid #e6edf3" />
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="password" name="passwordForm" placeholder="Password" required />
                 </div>
-                <div>
-                    <div style="margin-bottom:6px;color:#374151;font-weight:600">Tipo de Conta</div>
-                    <label style="margin-right:12px"><input type="radio" name="roleForm" value="user" checked> Utilizador</label>
+                <div class="form-group">
+                    <div class="mb-6 label-strong">Tipo de Conta</div>
+                    <label class="mr-12"><input type="radio" name="roleForm" value="user" checked> Utilizador</label>
                     <label><input type="radio" name="roleForm" value="empresa"> Empresa</label>
                 </div>
                 <button class="btn" type="submit">Registar</button>
             </div>
         </form>
 
-        <div style="text-align:center;margin-top:14px;color:#6b7280">Já tem conta? <a href="/login">Iniciar Sessão</a></div>
+        <div class="center-text mt-18 muted">Já tem conta? <a href="/login">Iniciar Sessão</a></div>
     </div>
 {% endblock %}

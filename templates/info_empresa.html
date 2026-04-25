@@ -4,29 +4,29 @@
 
 {% block content %}
     <div>
-        <h1 style="margin:0 0 6px 0">{{ empresa.nome or 'Empresa' }}</h1>
-        <div class="small" style="color:#6b7280;margin-bottom:12px">ID: {{ empresa.id }}</div>
+        <h1 class="mb-6">{{ empresa.nome or 'Empresa' }}</h1>
+        <div class="small muted mb-12">ID: {{ empresa.id }}</div>
 
-        <div style="display:grid;grid-template-columns:140px 1fr;gap:12px 18px">
-            <div style="font-weight:700;color:#374151">Email</div>
-            <div style="color:#111">{{ empresa.email or 'N/A' }}</div>
+        <div class="grid-2cols">
+            <div class="label-strong">Email</div>
+            <div class="muted-dark">{{ empresa.email or 'N/A' }}</div>
 
-            <div style="font-weight:700;color:#374151">Telefone</div>
-            <div style="color:#111">{{ empresa.telefone or 'N/A' }}</div>
+            <div class="label-strong">Telefone</div>
+            <div class="muted-dark">{{ empresa.telefone or 'N/A' }}</div>
 
-            <div style="font-weight:700;color:#374151">Morada</div>
-            <div style="color:#111">{{ empresa.morada or 'N/A' }}</div>
+            <div class="label-strong">Morada</div>
+            <div class="muted-dark">{{ empresa.morada or 'N/A' }}</div>
 
             {% if empresa.website %}
-                <div style="font-weight:700;color:#374151">Website</div>
+                <div class="label-strong">Website</div>
                 <div><a href="{{ empresa.website }}" target="_blank" rel="noopener noreferrer">{{ empresa.website }}</a></div>
             {% endif %}
 
-            <div style="font-weight:700;color:#374151">Descrição</div>
-            <div style="color:#111">{{ empresa.descricao or 'N/A' }}</div>
+            <div class="label-strong">Descrição</div>
+            <div class="muted-dark">{{ empresa.descricao or 'N/A' }}</div>
         </div>
 
-        <div style="margin-top:18px">
+        <div class="mt-18">
             <a class="btn" href="{{ url_for('dashboard') }}">Voltar aos Anúncios</a>
         </div>
     </div>
