@@ -28,9 +28,24 @@ from sqlalchemy.exc import IntegrityError
 
 from uuid import uuid4
 import pathlib
+import pyotp
+import qrcode
+import io
+import base64
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from uuid import uuid4 as _uuid4
 
 app = Flask(__name__)
 app.config.from_object(Config)
+
+# Rate limiter (development in-memory storage). Adjust limits for production.
+limiter = Limiter(key_func=get_remote_address, default_limits=["200 per day", "50 per hour"])
+limiter.init_app(app)
+
+# Serializer for remember-device cookie
+_serializer = URLSafeTimedSerializer(app.secret_key)
 
 # Inicializar SQLAlchemy com a aplicação Flask
 db.init_app(app)
@@ -159,7 +174,9 @@ def registar():
     # Load current_user from DB if logged in (used to customize templates)
     db.session.get(User, user_id) if user_id else None
 
-    if request.method == 'POST' and not user_id:
+    # Allow registration POST even if someone is logged in (useful for admin or multi-account flows).
+    # Previously this checked `and not user_id` which blocked account creation when a session existed.
+    if request.method == 'POST':
         nome = (request.form.get('nomeForm') or '').strip()
         email = request.form.get('emailForm')
         password = request.form.get('passwordForm')
@@ -255,6 +272,7 @@ def registar_empresa(user_id):
 
 
 @app.route('/login', methods=['GET', 'POST'])
+@limiter.limit("6 per minute")
 def login():
     """
     Rota Login.
@@ -278,6 +296,32 @@ def login():
         # Lookup user and verify password
         user = User.query.filter_by(email=email).first()
         if user and user.check_password(password):
+            # If user has 2FA enabled, require TOTP before establishing full session
+            # Check for remember-device cookie: if present and valid, skip 2FA
+            remember_cookie = request.cookies.get('remember_device')
+            if getattr(user, 'two_factor_enabled', False):
+                if remember_cookie:
+                    try:
+                        data = _serializer.loads(remember_cookie, max_age=60 * 60 * 24 * 30)
+                        if isinstance(data, dict) and data.get('uid') == user.id:
+                            # trusted device, complete login
+                            session['user_id'] = user.id
+                            session['nome'] = user.nome
+                            session['role'] = user.role
+                            if user.role == 'empresa':
+                                empresa = db.session.query(Empresa).filter_by(user_id=user.id).first()
+                                if empresa:
+                                    session['empresa_id'] = empresa.id
+                            return redirect(url_for('home'))
+                    except (BadSignature, SignatureExpired):
+                        # invalid or expired cookie — ignore and proceed to 2FA
+                        pass
+
+                # store pre-auth id and redirect to 2FA verification page
+                session['pre_2fa_user_id'] = user.id
+                return redirect(url_for('two_factor_verify'))
+
+            # Otherwise complete login as before
             session['user_id'] = user.id
             session['nome'] = user.nome
             session['role'] = user.role
@@ -292,11 +336,176 @@ def login():
     return render_template('login.html')
 
 
+@app.route('/2fa-verify', methods=['GET', 'POST'])
+@limiter.limit("6 per minute")
+def two_factor_verify():
+    """
+    Verify a TOTP code after password verification for users with 2FA enabled.
+    The login handler sets `session['pre_2fa_user_id']` and this route finalizes the login.
+    """
+    pre_id = session.get('pre_2fa_user_id')
+    if not pre_id:
+        return redirect(url_for('login'))
+
+    user = db.session.get(User, pre_id)
+    if not user:
+        session.pop('pre_2fa_user_id', None)
+        return redirect(url_for('login'))
+
+    error = None
+    if request.method == 'POST':
+        token = (request.form.get('token') or '').strip()
+        if user.verify_2fa_token(token) or user.verify_and_consume_backup_code(token):
+            # token valid — finalize login
+            session.pop('pre_2fa_user_id', None)
+            session['user_id'] = user.id
+            session['nome'] = user.nome
+            session['role'] = user.role
+            if user.role == 'empresa':
+                empresa = db.session.query(Empresa).filter_by(user_id=user.id).first()
+                if empresa:
+                    session['empresa_id'] = empresa.id
+            # Optionally set remember-device cookie if requested
+            resp = redirect(url_for('home'))
+            if request.form.get('remember'):
+                payload = {'uid': user.id, 'dev': _uuid4().hex}
+                token_signed = _serializer.dumps(payload)
+                # set cookie for 30 days
+                resp.set_cookie('remember_device', token_signed, max_age=60 * 60 * 24 * 30, httponly=True, samesite='Lax')
+            return resp
+        else:
+            error = 'Código inválido. Tente novamente.'
+
+    return render_template('2fa_verify.html', error=error)
+
+
+@app.route('/settings/2fa', methods=['GET', 'POST'])
+@login_required
+@limiter.limit("10 per minute")
+def settings_2fa():
+    """
+    Page to enable/confirm 2FA for the logged-in user.
+    GET: generate secret (if missing) and show QR code.
+    POST: verify token and enable 2FA on success.
+    """
+    user = db.session.get(User, session.get('user_id'))
+    if not user:
+        return redirect(url_for('login'))
+
+    # ensure user has a secret saved (but not necessarily enabled yet)
+    if not user.two_factor_secret:
+        user.generate_2fa_secret()
+        db.session.commit()
+
+    issuer = app.config.get('TWO_FA_ISSUER', 'Internia')
+    provisioning_uri = pyotp.TOTP(user.two_factor_secret).provisioning_uri(name=user.email, issuer_name=issuer)
+
+    # create QR image as data URI
+    img = qrcode.make(provisioning_uri)
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+    qr_b64 = base64.b64encode(buf.getvalue()).decode('ascii')
+    qr_data_uri = f"data:image/png;base64,{qr_b64}"
+
+    error = None
+    success = None
+    if request.method == 'POST':
+        token = (request.form.get('token') or '').strip()
+        if user.verify_2fa_token(token):
+            user.two_factor_enabled = True
+            db.session.commit()
+            success = '2FA ativado com sucesso.'
+        else:
+            error = 'Código inválido. Tente novamente.'
+
+    return render_template('settings_2fa.html', qr_data_uri=qr_data_uri, secret=user.two_factor_secret, error=error, success=success, two_factor_enabled=user.two_factor_enabled)
+
+
+@app.route('/settings/2fa/backup', methods=['POST'])
+@login_required
+@limiter.limit("6 per minute")
+def settings_2fa_backup():
+    """Generate new backup codes after verifying current TOTP or a backup code.
+    Returns a page showing the plaintext codes once.
+    """
+    user = db.session.get(User, session.get('user_id'))
+    if not user or not user.two_factor_enabled:
+        return redirect(url_for('settings_2fa'))
+
+    token = (request.form.get('token') or '').strip()
+    valid = False
+    # accept either TOTP or an existing backup code
+    if user.verify_2fa_token(token):
+        valid = True
+    elif user.verify_and_consume_backup_code(token):
+        # token was a valid backup code and consumed
+        db.session.commit()
+        valid = True
+
+    if not valid:
+        return render_template('settings_2fa.html', qr_data_uri='', secret=user.two_factor_secret, error='Código inválido para gerar backup codes.', success=None, two_factor_enabled=user.two_factor_enabled)
+
+    # generate new backup codes and save hashed versions
+    codes = user.generate_backup_codes()
+    db.session.commit()
+    # store plaintext codes in session briefly so user can download them
+    session['last_backup_codes'] = codes
+    return render_template('settings_2fa_backup.html', codes=codes)
+
+
+@app.route('/settings/2fa/backup/download', methods=['GET', 'POST'])
+@login_required
+@limiter.limit("10 per minute")
+def settings_2fa_backup_download():
+    """Return the last generated backup codes as a downloadable text file (one-time).
+    Codes are stored temporarily in session by settings_2fa_backup and will be cleared after download.
+    """
+    codes = session.pop('last_backup_codes', None)
+    if not codes:
+        return redirect(url_for('settings_2fa'))
+    text = "\n".join(codes)
+    from flask import make_response
+    resp = make_response(text)
+    resp.headers.set('Content-Type', 'text/plain')
+    resp.headers.set('Content-Disposition', 'attachment', filename='backup_codes.txt')
+    return resp
+
+
+@app.route('/settings/2fa/disable', methods=['POST'])
+@login_required
+@limiter.limit("6 per minute")
+def settings_2fa_disable():
+    """Disable 2FA for the logged-in user after verifying a TOTP or backup code."""
+    user = db.session.get(User, session.get('user_id'))
+    if not user or not user.two_factor_enabled:
+        return redirect(url_for('settings_2fa'))
+
+    token = (request.form.get('token') or '').strip()
+    valid = False
+    if user.verify_2fa_token(token):
+        valid = True
+    elif user.verify_and_consume_backup_code(token):
+        db.session.commit()
+        valid = True
+
+    if not valid:
+        return render_template('settings_2fa.html', qr_data_uri='', secret=user.two_factor_secret, error='Código inválido para desativar 2FA.', success=None, two_factor_enabled=user.two_factor_enabled)
+
+    # disable 2FA and clear secrets/backup codes
+    user.two_factor_enabled = False
+    user.two_factor_secret = None
+    user.backup_codes = None
+    db.session.commit()
+    return redirect(url_for('settings_2fa'))
+
+
 @app.route('/logout')
 def logout():
     """
     Rota Logout: Apaga sessão e redireciona para a página de registo.
     """
+    # Clear any pre-2fa state as well
+    session.pop('pre_2fa_user_id', None)
     session.clear()
     return redirect(url_for('registar'))
 

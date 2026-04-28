@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}Códigos de Backup - 2FA{% endblock %}
+
+{% block content %}
+  <div class="vstack">
+    <h1>Códigos de Backup (guarde-os em local seguro)</h1>
+    <p class="small muted">Estes códigos podem ser usados uma única vez cada um para aceder à sua conta se perder o acesso ao seu app 2FA.</p>
+    <div class="card vstack">
+      {% for c in codes %}
+        <div class="mono">{{ c }}</div>
+      {% endfor %}
+    </div>
+    <div class="mt-12" style="display:flex;gap:8px">
+      <form method="post" action="{{ url_for('settings_2fa_backup_download') }}">
+        <button class="btn" type="submit">Descarregar códigos</button>
+      </form>
+      <a class="btn" href="{{ url_for('settings_2fa') }}">Voltar</a>
+      <a class="btn" href="{{ url_for('home') }}">Home</a>
+    </div>
+  </div>
+{% endblock %}
+

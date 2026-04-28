@@ -20,13 +20,9 @@
             <a class="btn" href="{{ url_for('home') }}">Home</a>
             {% if session.get('user_id') %}
                 <span class="small">Olá, {{ session.get('nome') }}</span>
-                {% if session.get('role') == 'empresa' %}
-                    <a class="btn" href="{{ url_for('dashboard') }}">Anúncios</a>
-                    <a class="btn" href="{{ url_for('logout') }}">Sair</a>
-                {% else %}
-                    <a class="btn" href="{{ url_for('dashboard') }}">Anúncios</a>
-                    <a class="btn" href="{{ url_for('logout') }}">Sair</a>
-                {% endif %}
+                <a class="btn" href="{{ url_for('settings_2fa') }}">Configurações</a>
+                <a class="btn" href="{{ url_for('dashboard') }}">Anúncios</a>
+                <a class="btn" href="{{ url_for('logout') }}">Sair</a>
             {% else %}
                 <a class="btn" href="{{ url_for('login') }}">Entrar</a>
             {% endif %}

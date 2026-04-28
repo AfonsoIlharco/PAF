@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}Configurar 2FA{% endblock %}
+
+{% block content %}
+  <div class="vstack">
+    <h1>Configurar Autenticação de Dois Fatores (2FA)</h1>
+
+    {% if success %}
+      <div class="status-badge">{{ success }}</div>
+    {% endif %}
+    {% if error %}
+      <div class="error-message">{{ error }}</div>
+    {% endif %}
+
+    <p>Escaneie o QR com o seu app Authenticator (Google Authenticator, Authy, etc.) ou introduza o código manualmente.</p>
+
+    <div class="card">
+      <img src="{{ qr_data_uri }}" alt="QR code para 2FA" style="max-width:260px;display:block;margin-bottom:12px;"/>
+      <div class="small muted">Código manual: <strong>{{ secret }}</strong></div>
+    </div>
+
+    {% if not two_factor_enabled %}
+      <form method="post" class="vstack">
+        <label>Insira o código do seu app para confirmar e ativar 2FA</label>
+        <input name="token" class="input" placeholder="123456" required />
+        <div>
+          <button class="btn" type="submit">Confirmar e ativar 2FA</button>
+          <a class="btn" href="{{ url_for('home') }}">Cancelar</a>
+        </div>
+      </form>
+    {% else %}
+      <div class="vstack">
+        <p class="lead">2FA está ativado para a sua conta.</p>
+
+        <form method="post" action="{{ url_for('settings_2fa_backup') }}" class="vstack">
+          <label>Para gerar novos códigos de backup insira o seu código atual (TOTP ou backup):</label>
+          <input name="token" class="input" placeholder="123456" required />
+          <div>
+            <button class="btn" type="submit">Gerar códigos de backup</button>
+          </div>
+        </form>
+
+        <form method="post" action="{{ url_for('settings_2fa_disable') }}" class="vstack">
+          <label>Desativar 2FA (insira código atual):</label>
+          <input name="token" class="input" placeholder="123456" required />
+          <div>
+            <button class="btn danger" type="submit">Desativar 2FA</button>
+          </div>
+        </form>
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}
+

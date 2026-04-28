@@ -1,6 +1,9 @@
 from db import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+from sqlalchemy import Boolean
+import pyotp
+import json
 
 class User(db.Model):
     __tablename__ = 'user'
@@ -11,6 +14,11 @@ class User(db.Model):
     role = db.Column(db.String(20), nullable=False, default='user')  # 'user' or 'empresa'
     foto_perfil = db.Column(db.String, nullable=True)
     cv_path = db.Column(db.String, nullable=True)
+    # Two-factor auth (TOTP) fields
+    two_factor_enabled = db.Column(db.Boolean, default=False, nullable=False)
+    two_factor_secret = db.Column(db.String(64), nullable=True)
+    # Backup single-use codes stored as JSON array of hashed codes
+    backup_codes = db.Column(db.Text, nullable=True)
 
     empresa = db.relationship('Empresa', back_populates='user', uselist=False)
     # Relationship: candidaturas feitas por este user
@@ -21,6 +29,61 @@ class User(db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password, password)
+
+    def generate_2fa_secret(self):
+        """
+        Generate and store a new base32 secret for TOTP and return it.
+        """
+        # use pyotp to create a random base32 secret
+        secret = pyotp.random_base32()
+        self.two_factor_secret = secret
+        return secret
+
+    def verify_2fa_token(self, token):
+        """
+        Verify a TOTP token against the stored secret.
+
+        Returns True if valid, False otherwise.
+        """
+        if not self.two_factor_secret:
+            return False
+        totp = pyotp.TOTP(self.two_factor_secret)
+        # allow small window for clock skew
+        return bool(totp.verify(token, valid_window=1))
+
+    def generate_backup_codes(self, n=8):
+        """
+        Generate n one-time backup codes, store their hashed versions in the DB and
+        return the plaintext list so it can be shown once to the user.
+        """
+        codes = []
+        hashed = []
+        for _ in range(n):
+            # create a short human-friendly code
+            c = pyotp.random_base32()[:10]
+            codes.append(c)
+            hashed.append(generate_password_hash(c))
+        self.backup_codes = json.dumps(hashed)
+        return codes
+
+    def verify_and_consume_backup_code(self, code):
+        """
+        Verify a backup code; if valid, remove it from stored hashed list and return True.
+        Otherwise return False.
+        """
+        if not self.backup_codes:
+            return False
+        try:
+            hashed_list = json.loads(self.backup_codes)
+        except Exception:
+            return False
+        for i, h in enumerate(hashed_list):
+            if check_password_hash(h, code):
+                # consume this code
+                hashed_list.pop(i)
+                self.backup_codes = json.dumps(hashed_list) if hashed_list else None
+                return True
+        return False
 
     def __repr__(self):
         return f"User(id={self.id}, nome='{self.nome}', email='{self.email}')"

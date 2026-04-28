@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %}Verificar 2FA{% endblock %}
+
+{% block content %}
+  <div class="vstack">
+    <h1>Verificação em dois passos</h1>
+    {% if error %}
+      <div class="error-message">{{ error }}</div>
+    {% endif %}
+    <form method="post" class="vstack">
+      <label>Insira o código do seu app:</label>
+      <input name="token" class="input" placeholder="123456" required />
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+        <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" name="remember" value="1"> Lembrar este dispositivo</label>
+      </div>
+      <div>
+        <button class="btn" type="submit">Entrar</button>
+        <a class="btn" href="{{ url_for('login') }}">Cancelar</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}
+
