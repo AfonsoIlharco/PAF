@@ -11,3 +11,10 @@ class Config:
     CV_FOLDER = os.path.join(BASE_UPLOAD_FOLDER, 'cv')
 
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5MB limite upload
+    # Optional SMTP settings for sending password reset emails. If not set,
+    # the application will print emails to the console (development).
+    SMTP_HOST = None
+    SMTP_PORT = 587
+    SMTP_USER = None
+    SMTP_PASS = None
+    SMTP_FROM = None

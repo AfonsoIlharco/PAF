@@ -18,6 +18,11 @@
                 {% if error %}
                     <div class="error-message">{{ error }}</div>
                 {% endif %}
+                <div class="small">
+                    <a href="{{ url_for('forgot') }}">Esqueceu a password?</a>
+                    &nbsp;•&nbsp;
+                    <a href="{{ url_for('recover_with_code') }}">Recuperar com código de backup</a>
+                </div>
                 <button class="btn" type="submit">Entrar</button>
             </div>
         </form>

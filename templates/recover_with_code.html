@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block title %}Recuperar com Código - Internia{% endblock %}
+
+{% block content %}
+    <div class="max-width-center">
+        <h1 class="center-text mb-14">Recuperar com Código de Backup</h1>
+        {% if error %}
+            <div class="error-message">{{ error }}</div>
+        {% endif %}
+        <form method="POST">
+            <div class="vstack">
+                <div class="form-group">
+                    <label>Email associado</label>
+                    <input type="email" name="email" placeholder="Email" required />
+                </div>
+                <div class="form-group">
+                    <label>Código de Backup</label>
+                    <input type="text" name="code" placeholder="Código de backup" required />
+                </div>
+                <button class="btn" type="submit">Verificar código</button>
+            </div>
+        </form>
+        <div class="center-text mt-18 muted">Voltar para <a href="{{ url_for('login') }}">Login</a></div>
+    </div>
+{% endblock %}
+

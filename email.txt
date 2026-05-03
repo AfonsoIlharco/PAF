@@ -1,0 +1,65 @@
+Done — I implemented an HTML email template and wired the app to send multipart (plain + HTML) emails. I also kept the development fallback (prints the email to the process console / stdout) and added rate-limits and logging for recovery flows.
+What I changed (summary)
+HTML email template added:
+templates/email/reset_email.html (HTML version)
+templates/email/reset_email.txt (plain-text fallback)
+Sending code updated:
+send_email() now composes a multipart message (plain + HTML) and sends with SMTP when configured.
+If SMTP is not configured, the email is printed to the running process console (stdout) so you can copy the reset link during development.
+forgot route now renders the templates and calls send_email(text, html).
+Added logging and rate-limits (already present in prior changes).
+How to enable actual email sending (what's required) Short answer: you need a working SMTP account (credentials + hostname/port) or a transactional email provider. There are no code-only “strings attached”, but operational requirements and best practices you should be aware of:
+SMTP credentials / provider
+You must provide SMTP settings in config.py (or via environment variables if you prefer to modify config loading):
+SMTP_HOST = 'smtp.example.com'
+SMTP_PORT = 587 # typical for STARTTLS; 465 for implicit TLS
+SMTP_USER = 'smtp-username' # often your email or service username
+SMTP_PASS = 'smtp-password' # or app password / API key
+SMTP_FROM = 'no-reply@your-domain.com'
+Transactional providers are recommended (SendGrid, Mailgun, Amazon SES, Postmark, Mailjet, etc.). They have APIs or SMTP endpoints and handle deliverability at scale.
+Port & TLS
+The code uses server.starttls() and default port 587. If your provider requires SSL on port 465, adjust the code to use smtplib.SMTP_SSL(host, 465) or change config accordingly. I can add support for implicit SSL if needed.
+Provider-specific notes
+Gmail/Google: you must use an app password or OAuth2 (less secure app access was deprecated). Using Gmail via SMTP is doable with an app password for accounts with 2FA.
+Many providers require verifying the sender address/domain before sending from it.
+Deliverability (recommended)
+Add SPF and DKIM DNS records for the sending domain to improve deliverability.
+(Optional) DMARC for policies.
+Transactional providers will often guide you to add these and validate DKIM keys.
+Without these, messages may be flagged as spam or blocked.
+Rate limits, reputation and costs
+Providers and mail servers apply rate-limits and quotas; large volumes may require paid plans.
+Using a reputable transactional service reduces bounce and spam issues.
+Email providers may bill based on volume.
+Legal / privacy considerations
+Make sure you comply with local laws (GDPR, CAN-SPAM, etc.) when sending emails to users.
+Ensure users consented to receive emails where required.
+Testing locally
+Development fallback (what I implemented): when SMTP settings are not provided, the app prints the email to stdout (the terminal where you run python app.py). This is safe and convenient for testing; you can copy the reset URL directly from the console output.
+Alternative local testing tools:
+MailHog (accepts SMTP locally, web UI to view emails)
+Mailtrap (cloud testing inbox)
+smtp4dev (Windows)
+Example: run MailHog locally and set SMTP_HOST to localhost and SMTP_PORT to MailHog's port, then emails go to MailHog UI.
+How to configure the app to send real emails
+Edit API_PAF/config.py (or set environment variables then update Config to read env vars) and add:
+SMTP_HOST = 'smtp.your-provider.com'
+SMTP_PORT = 587
+SMTP_USER = 'your-smtp-user'
+SMTP_PASS = 'your-smtp-password'
+SMTP_FROM = 'no-reply@your-domain.com'
+Restart the Flask app.
+Example: Gmail (quick notes)
+Enable 2FA on the Google account.
+Create an App Password in Google account -> use that as SMTP_PASS.
+SMTP_HOST = 'smtp.gmail.com', SMTP_PORT = 587, SMTP_USER = 'your@gmail.com', SMTP_FROM = 'your@gmail.com'.
+Security & operational suggestions
+Never commit SMTP credentials to source control. Use environment variables or a secrets manager.
+Use a dedicated sending domain or subdomain (e.g. mail.yourdomain.com) and add SPF/DKIM records.
+Use your provider's API if you need higher throughput and better observability (many providers offer Python SDKs).
+Keep the rate-limits I added; consider increasing or backing them with a central store (Redis) in production.
+Would you like me to:
+(A) Add env-var-based config (read SMTP settings from environment) and example .env snippet? — recommended for deployment.
+(B) Add example MailHog / smtp4dev instructions and a short test script to send a test email?
+(C) Add support for SMTPS (implicit SSL on port 465) and better error messages when sending fails?
+Pick one (A/B/C) and I’ll implement it next.

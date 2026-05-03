@@ -29,7 +29,22 @@
         </nav>
     </header>
 
+    <!-- flashed messages (info / error) -->
     <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-wrapper">
+                    {% for category, msg in messages %}
+                        {% if category == 'error' %}
+                            <div class="flash-error">{{ msg }}</div>
+                        {% else %}
+                            <div class="flash-info">{{ msg }}</div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
         {% block content %}{% endblock %}
     </main>
 

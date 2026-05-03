@@ -1,0 +1,1 @@
+Redefinir a sua password\n\nRecebemos um pedido para redefinir a password da sua conta. Copie e cole o link abaixo no seu browser (válido 1h):\n\n{{ reset_url }}\n\nSe não pediu esta alteração, pode ignorar este email.

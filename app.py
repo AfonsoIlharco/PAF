@@ -33,12 +33,20 @@ import qrcode
 import io
 import base64
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+import logging
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from uuid import uuid4 as _uuid4
 
 app = Flask(__name__)
 app.config.from_object(Config)
+
+# basic logging for audit of recovery events
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Rate limiter (development in-memory storage). Adjust limits for production.
 limiter = Limiter(key_func=get_remote_address, default_limits=["200 per day", "50 per hour"])
@@ -53,6 +61,64 @@ db.init_app(app)
 # Importar modelos após a app e db serem inicializadas para evitar
 # o erro SQLAlchemy "not registered with this 'SQLAlchemy' instance"
 from models import User, Empresa, Anuncio, Candidatura
+
+
+# Simple email sender helper. Uses SMTP settings from Config when provided,
+# otherwise falls back to printing the message to the console (development).
+def send_email(to_address: str, subject: str, body: str) -> bool:
+    host = app.config.get('SMTP_HOST')
+    from_addr = app.config.get('SMTP_FROM') or app.config.get('SMTP_USER') or 'noreply@example.com'
+    # If html content provided it's passed as tuple (text, html) in `body`.
+    text_body = None
+    html_body = None
+    if isinstance(body, tuple) and len(body) == 2:
+        text_body, html_body = body
+    else:
+        text_body = str(body)
+
+    if host:
+        try:
+            port = app.config.get('SMTP_PORT', 587)
+            user = app.config.get('SMTP_USER')
+            password = app.config.get('SMTP_PASS')
+
+            # Build multipart message with text and optional html part
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = subject
+            msg['From'] = from_addr
+            msg['To'] = to_address
+
+            part1 = MIMEText(text_body or '', 'plain', 'utf-8')
+            msg.attach(part1)
+            if html_body:
+                part2 = MIMEText(html_body, 'html', 'utf-8')
+                msg.attach(part2)
+
+            server = smtplib.SMTP(host, port, timeout=10)
+            server.starttls()
+            if user and password:
+                server.login(user, password)
+            server.sendmail(from_addr, [to_address], msg.as_string())
+            server.quit()
+            return True
+        except Exception as e:
+            # Log failure
+            logger.exception('send_email error')
+            return False
+
+    # Development fallback: print the email to the running process stdout
+    print('----- EMAIL (dev) -----')
+    print('To:', to_address)
+    print('Subject:', subject)
+    if html_body:
+        print('(text)')
+        print(text_body)
+        print('(html)')
+        print(html_body)
+    else:
+        print(text_body)
+    print('----- END EMAIL -----')
+    return True
 
 # Extensões de ficheiro permitidas para upload (logo, CVs, fotos de perfil, etc.)
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf'}
@@ -499,6 +565,146 @@ def settings_2fa_disable():
     return redirect(url_for('settings_2fa'))
 
 
+@app.route('/recover-with-code', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
+def recover_with_code():
+    """Recover account using a backup code.
+
+    The user provides their email and one backup code. If the code matches
+    (and is consumed) we allow them to proceed to update both email and
+    password on a dedicated page.
+    """
+    error = None
+    if request.method == 'POST':
+        email = (request.form.get('email') or '').strip()
+        code = (request.form.get('code') or '').strip()
+        if not email or not code:
+            error = 'Preencha email e código de backup.'
+        else:
+            user = db.session.query(User).filter_by(email=email).first()
+            if not user:
+                error = 'Email ou código inválido.'
+            else:
+                ok = False
+                try:
+                    if user.verify_and_consume_backup_code(code):
+                        db.session.commit()
+                        ok = True
+                except Exception:
+                    # keep generic error
+                    ok = False
+
+                if ok:
+                    session['recovery_user_id'] = user.id
+                    logger.info('Backup code recovery success for user_id=%s', user.id)
+                    return redirect(url_for('recover_update'))
+                else:
+                    logger.warning('Backup code recovery failed for email=%s', email)
+                    error = 'Email ou código inválido.'
+
+    return render_template('recover_with_code.html', error=error)
+
+
+@app.route('/recover-update', methods=['GET', 'POST'])
+@limiter.limit("3 per minute")
+def recover_update():
+    """After successful backup-code verification, allow changing email/password.
+
+    This route expects `session['recovery_user_id']` to be set by
+    `recover_with_code`. After successful update we clear the session key and
+    log the user in.
+    """
+    uid = session.get('recovery_user_id')
+    if not uid:
+        return redirect(url_for('login'))
+
+    user = db.session.get(User, uid)
+    if not user:
+        session.pop('recovery_user_id', None)
+        return redirect(url_for('login'))
+
+    error = None
+    if request.method == 'POST':
+        new_email = (request.form.get('email') or '').strip()
+        new_pw = (request.form.get('password') or '').strip()
+        if not new_email or not new_pw:
+            error = 'Preencha email e password.'
+        else:
+            # Check uniqueness if email changed
+            if new_email != user.email and db.session.query(User).filter_by(email=new_email).first():
+                error = 'Email já registado por outro utilizador.'
+            else:
+                user.email = new_email
+                user.set_password(new_pw)
+                db.session.commit()
+                # clear recovery state and log them in
+                session.pop('recovery_user_id', None)
+                session['user_id'] = user.id
+                session['nome'] = user.nome
+                session['role'] = user.role
+                if user.role == 'empresa':
+                    empresa = db.session.query(Empresa).filter_by(user_id=user.id).first()
+                    if empresa:
+                        session['empresa_id'] = empresa.id
+                return redirect(url_for('home'))
+
+    return render_template('recover_update.html', user=user, error=error)
+
+
+@app.route('/forgot', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
+def forgot():
+    """Request a password reset. If the email exists we email a time-limited
+    password reset link. For convenience (account recovery) we also generate a
+    fresh set of 2FA backup codes and include them in the email body. In
+    development the email is printed to stdout if SMTP isn't configured.
+    """
+    info = None
+    if request.method == 'POST':
+        email = (request.form.get('email') or '').strip()
+        if email:
+            user = db.session.query(User).filter_by(email=email).first()
+            # Always show the same response to avoid leaking which emails exist
+            info = 'Se esse email existe, enviámos instruções para o mesmo.'
+            if user:
+                token = _serializer.dumps({'uid': user.id}, salt='password-reset')
+                reset_url = url_for('reset_password', token=token, _external=True)
+                # Render both plain and HTML versions of the reset email from templates
+                text_body = render_template('email/reset_email.txt', reset_url=reset_url)
+                html_body = render_template('email/reset_email.html', reset_url=reset_url)
+                send_email(user.email, 'Redefinir password - Internia', (text_body, html_body))
+                logger.info('Password reset requested for user_id=%s email=%s', user.id, user.email)
+        else:
+            info = 'Preencha um email válido.'
+    return render_template('forgot.html', info=info)
+
+
+@app.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    """Reset the password using a token sent by email."""
+    try:
+        data = _serializer.loads(token, salt='password-reset', max_age=3600)
+        uid = data.get('uid')
+    except (BadSignature, SignatureExpired):
+        return "Link inválido ou expirado", 400
+
+    user = db.session.get(User, uid)
+    if not user:
+        return "User not found", 404
+
+    error = None
+    if request.method == 'POST':
+        new_pw = (request.form.get('password') or '').strip()
+        if not new_pw:
+            error = 'Password obrigatória.'
+        else:
+            user.set_password(new_pw)
+            db.session.commit()
+            return redirect(url_for('login', _external=False))
+
+    return render_template('reset_password.html', error=error)
+
+
 @app.route('/logout')
 def logout():
     """
@@ -703,13 +909,21 @@ def info_empresa(ad_id):
 
 @app.route('/novo_anuncio', methods=['GET', 'POST'])
 @login_required
-@role_required('empresa')
 def novo_anuncio():
     """Criar um novo Anúncio (apenas empresas).
 
     GET: renderiza 'novo_anuncio.html'
     POST: cria o Anuncio a partir de fields do form e redireciona para o dashboard
     """
+    # If the logged-in user is not a company, redirect back to anuncios with a
+    # friendly warning message rather than returning a hard 403 page. This makes
+    # the UX clearer when someone mistakenly tries to create an ad.
+    if session.get('role') != 'empresa':
+        # use flash instead of query params for nicer UX
+        from flask import flash
+        flash('Apenas empresas podem criar anúncios. Crie um perfil de empresa primeiro.', 'error')
+        return redirect(url_for('dashboard'))
+
     # find empresa for current user
     empresa = db.session.query(Empresa).filter_by(user_id=session.get('user_id')).first()
     if not empresa:

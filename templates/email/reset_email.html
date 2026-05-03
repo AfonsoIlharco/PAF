@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Redefinir password</title>
+  <style>
+    body{font-family:Inter, Arial, Helvetica, sans-serif;background:#f7fbff;color:#0f172a;padding:24px}
+    .card{max-width:600px;margin:0 auto;background:white;padding:20px;border-radius:10px;border:1px solid #eef6ff}
+    .btn{display:inline-block;padding:10px 16px;background:#0066cc;color:white;border-radius:8px;text-decoration:none}
+    .muted{color:#6b7280;font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Redefinir a sua password</h2>
+    <p class="muted">Recebemos um pedido para redefinir a password da sua conta. Clique no botão abaixo para definir uma nova password. Este link expira em 1 hora.</p>
+    <p style="text-align:center;margin:20px 0"><a class="btn" href="{{ reset_url }}">Redefinir password</a></p>
+    <p class="muted">Se o botão não funcionar, copie e cole este URL no seu browser:</p>
+    <p class="muted" style="word-break:break-all">{{ reset_url }}</p>
+    <hr>
+    <p class="muted">Se não pediu esta alteração, pode ignorar este email.</p>
+  </div>
+</body>
+</html>
+
