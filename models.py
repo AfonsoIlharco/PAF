@@ -14,10 +14,10 @@ class User(db.Model):
     role = db.Column(db.String(20), nullable=False, default='user')  # 'user' or 'empresa'
     foto_perfil = db.Column(db.String, nullable=True)
     cv_path = db.Column(db.String, nullable=True)
-    # Two-factor auth (TOTP) fields
+    # Campos de autenticação de dois fatores (TOTP)
     two_factor_enabled = db.Column(db.Boolean, default=False, nullable=False)
     two_factor_secret = db.Column(db.String(64), nullable=True)
-    # Backup single-use codes stored as JSON array of hashed codes
+    # Cópia de segurança de códigos de uso único armazenados como uma matriz JSON de códigos com hash
     backup_codes = db.Column(db.Text, nullable=True)
 
     empresa = db.relationship('Empresa', back_populates='user', uselist=False)
@@ -32,34 +32,34 @@ class User(db.Model):
 
     def generate_2fa_secret(self):
         """
-        Generate and store a new base32 secret for TOTP and return it.
+        Gerar e armazenar um novo segredo em base32 para o TOTP e devolvê-lo.
         """
-        # use pyotp to create a random base32 secret
+        # Utilizar o pyotp para criar um segredo aleatório em base32
         secret = pyotp.random_base32()
         self.two_factor_secret = secret
         return secret
 
     def verify_2fa_token(self, token):
         """
-        Verify a TOTP token against the stored secret.
+        Verifica um token TOTP em relação ao segredo armazenado.
 
-        Returns True if valid, False otherwise.
+        Retorna True se for válido, False caso contrário.
         """
         if not self.two_factor_secret:
             return False
         totp = pyotp.TOTP(self.two_factor_secret)
-        # allow small window for clock skew
+        # Prever uma pequena margem para o desfasamento do relógio
         return bool(totp.verify(token, valid_window=1))
 
     def generate_backup_codes(self, n=8):
         """
-        Generate n one-time backup codes, store their hashed versions in the DB and
-        return the plaintext list so it can be shown once to the user.
+        Gerar n códigos de backup de uso único, armazenar as suas versões com hash na base de dados e
+        devolver a lista em texto simples para que possa ser apresentada uma vez ao utilizador.
         """
         codes = []
         hashed = []
         for _ in range(n):
-            # create a short human-friendly code
+            # Criar um código curto e de fácil compreensão
             c = pyotp.random_base32()[:10]
             codes.append(c)
             hashed.append(generate_password_hash(c))
@@ -68,8 +68,8 @@ class User(db.Model):
 
     def verify_and_consume_backup_code(self, code):
         """
-        Verify a backup code; if valid, remove it from stored hashed list and return True.
-        Otherwise return False.
+        Verifica um código de reserva; se for válido, remove-o da lista de hash armazenada e devolve True.
+        Caso contrário, devolve False.
         """
         if not self.backup_codes:
             return False
@@ -79,7 +79,7 @@ class User(db.Model):
             return False
         for i, h in enumerate(hashed_list):
             if check_password_hash(h, code):
-                # consume this code
+                # Execute este código
                 hashed_list.pop(i)
                 self.backup_codes = json.dumps(hashed_list) if hashed_list else None
                 return True
@@ -128,7 +128,7 @@ class Anuncio(db.Model):
             "empresa_id": self.empresa_id,
             "titulo": self.titulo,
             "descricao": self.descricao,
-            # convert times to string if needed:
+            # Converter os horários em cadeias de caracteres, se necessário:
             "hora_entrada": self.hora_entrada.strftime('%H:%M') if self.hora_entrada else None,
             "hora_saida": self.hora_saida.strftime('%H:%M') if self.hora_saida else None,
         }
@@ -152,7 +152,7 @@ class Candidatura(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     mensagem = db.Column(db.String, nullable=True)
 
-    # Uniqueness constraint
+    # Restrição de exclusividade
     __table_args__ = (db.UniqueConstraint('user_id', 'anuncio_id', name='uq_user_ad'),)
 
     user = db.relationship('User', back_populates='candidaturas')

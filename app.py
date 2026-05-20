@@ -44,15 +44,15 @@ from uuid import uuid4 as _uuid4
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# basic logging for audit of recovery events
+# Registo básico para auditoria de eventos de recuperação
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Rate limiter (development in-memory storage). Adjust limits for production.
+# Limitador de taxa (armazenamento em memória para desenvolvimento). Ajustar os limites para produção.
 limiter = Limiter(key_func=get_remote_address, default_limits=["200 per day", "50 per hour"])
 limiter.init_app(app)
 
-# Serializer for remember-device cookie
+# Serializador para o cookie “remember-device”
 _serializer = URLSafeTimedSerializer(app.secret_key)
 
 # Inicializar SQLAlchemy com a aplicação Flask
@@ -63,12 +63,12 @@ db.init_app(app)
 from models import User, Empresa, Anuncio, Candidatura
 
 
-# Simple email sender helper. Uses SMTP settings from Config when provided,
-# otherwise falls back to printing the message to the console (development).
+# Um auxiliar simples para o envio de e-mails. Utiliza as definições SMTP do ficheiro Config, quando estas forem fornecidas,
+# caso contrário, recorre à exibição da mensagem na consola (em ambiente de desenvolvimento).
 def send_email(to_address: str, subject: str, body: str) -> bool:
     host = app.config.get('SMTP_HOST')
     from_addr = app.config.get('SMTP_FROM') or app.config.get('SMTP_USER') or 'noreply@example.com'
-    # If html content provided it's passed as tuple (text, html) in `body`.
+    # Se for fornecido conteúdo HTML, este é passado como uma tupla (texto, html) em `body`.
     text_body = None
     html_body = None
     if isinstance(body, tuple) and len(body) == 2:
@@ -82,7 +82,7 @@ def send_email(to_address: str, subject: str, body: str) -> bool:
             user = app.config.get('SMTP_USER')
             password = app.config.get('SMTP_PASS')
 
-            # Build multipart message with text and optional html part
+            # Criar uma mensagem multiparte com texto e uma parte HTML opcional
             msg = MIMEMultipart('alternative')
             msg['Subject'] = subject
             msg['From'] = from_addr
@@ -102,11 +102,11 @@ def send_email(to_address: str, subject: str, body: str) -> bool:
             server.quit()
             return True
         except Exception as e:
-            # Log failure
+            # Falha no registo
             logger.exception('send_email error')
             return False
 
-    # Development fallback: print the email to the running process stdout
+    # Solução alternativa de desenvolvimento: enviar o e-mail para a saída padrão do processo em execução
     print('----- EMAIL (dev) -----')
     print('To:', to_address)
     print('Subject:', subject)
@@ -145,9 +145,9 @@ def allowed_file(filename):
 
 def _remove_file_if_exists(rel_path):
     """
-    Remove a file referenced by a relative path stored in the DB (e.g. 'uploads/empresas/x.png').
-    This function resolves the path safely inside the 'static' directory and removes the file
-    if it exists. It ignores errors and returns True if a file was removed, False otherwise.
+    Remover um ficheiro referenciado por um caminho relativo armazenado na base de dados (por exemplo, «uploads/empresas/x.png»).
+    Esta função resolve o caminho de forma segura dentro do diretório «static» e remove o ficheiro
+    se este existir. Ignora os erros e devolve True se o ficheiro tiver sido removido; caso contrário, devolve False.
     """
     if not rel_path:
         return False
@@ -297,7 +297,7 @@ def registar_empresa(user_id):
         telefone = request.form.get('telefone')
         descricao = request.form.get('descricao')
 
-        # Simple validation: company name required
+        # Validação simples: nome da empresa obrigatório
         if not nome_empresa:
             return render_template('registar_empresa.html', user=user, error='Preencha o nome da empresa')
 
@@ -310,24 +310,24 @@ def registar_empresa(user_id):
             descricao=descricao
         )
 
-        # Handle optional logo upload (use uuid to avoid collisions)
+        # Lidar com o carregamento opcional de logótipos (utilizar UUID para evitar conflitos)
         file = request.files.get('logo')
         if file and file.filename != '':
-            # Check allowed file extensions for security
+            # Verifique as extensões de ficheiro permitidas por motivos de segurança
             if allowed_file(file.filename):
                 original = secure_filename(file.filename)
                 name, ext = os.path.splitext(original)
                 unique_name = f"{name}_{uuid4().hex}{ext}"
-                # Use configured folder; fallback to default static/uploads/empresas
+                # Utilizar a pasta configurada; caso contrário, utilizar a pasta padrão static/uploads/empresas
                 upload_folder = app.config.get('EMPRESA_FOLDER', os.path.join('static', 'uploads', 'empresas'))
                 filepath = os.path.join(upload_folder, unique_name)
-                # Save the file to disk (directory created at app startup)
+                # Guarde o ficheiro no disco (diretório criado no arranque da aplicação)
                 file.save(filepath)
-                # Store relative path (relative to static folder) e.g. 'uploads/empresas/xxxxx.png'
+                # Armazenar o caminho relativo (em relação à pasta estática), por exemplo, «uploads/empresas/xxxxx.png»
                 rel = os.path.relpath(filepath, start=app.static_folder).replace('\\', '/')
                 empresa.logo = rel
             else:
-                # Disallow invalid file types and show error on the same form
+                # Recusar tipos de ficheiros inválidos e apresentar uma mensagem de erro no próprio formulário
                 return render_template('registar_empresa.html', user=user, error='Tipo de ficheiro não permitido')
 
         db.session.add(empresa)
@@ -359,11 +359,11 @@ def login():
         email = request.form.get('emailForm')
         password = request.form.get('passwordForm')
 
-        # Lookup user and verify password
+        # Pesquisar utilizador e verificar a palavra-passe
         user = User.query.filter_by(email=email).first()
         if user and user.check_password(password):
-            # If user has 2FA enabled, require TOTP before establishing full session
-            # Check for remember-device cookie: if present and valid, skip 2FA
+            # Se o utilizador tiver a autenticação de dois fatores ativada, solicitar o TOTP antes de estabelecer a sessão completa
+            # Verificar se existe um cookie de memorização do dispositivo: se estiver presente e for válido, ignorar a autenticação de dois fatores
             remember_cookie = request.cookies.get('remember_device')
             if getattr(user, 'two_factor_enabled', False):
                 if remember_cookie:
@@ -380,24 +380,24 @@ def login():
                                     session['empresa_id'] = empresa.id
                             return redirect(url_for('home'))
                     except (BadSignature, SignatureExpired):
-                        # invalid or expired cookie — ignore and proceed to 2FA
+                        # Cookie inválido ou expirado — ignorar e avançar para a autenticação de dois fatores
                         pass
 
-                # store pre-auth id and redirect to 2FA verification page
+                # Store pre-auth id and redirect to 2FA verification page
                 session['pre_2fa_user_id'] = user.id
                 return redirect(url_for('two_factor_verify'))
 
-            # Otherwise complete login as before
+            # Caso contrário, conclua o início de sessão como anteriormente
             session['user_id'] = user.id
             session['nome'] = user.nome
             session['role'] = user.role
-            # If user owns a company, include company id in session for convenience
+            # Se o utilizador for proprietário de uma empresa, inclua o ID da empresa na sessão por uma questão de comodidade
             if user.role == 'empresa':
                 empresa = db.session.query(Empresa).filter_by(user_id=user.id).first()
                 if empresa:
                     session['empresa_id'] = empresa.id
             return redirect(url_for('home'))
-        # On auth failure, re-render login with an error
+        # Em caso de falha na autenticação, atualizar a página de login com uma mensagem de erro
         return render_template('login.html', error="Email ou password incorretos!")
     return render_template('login.html')
 
@@ -422,7 +422,7 @@ def two_factor_verify():
     if request.method == 'POST':
         token = (request.form.get('token') or '').strip()
         if user.verify_2fa_token(token) or user.verify_and_consume_backup_code(token):
-            # token valid — finalize login
+            # Token válido — concluir o início de sessão
             session.pop('pre_2fa_user_id', None)
             session['user_id'] = user.id
             session['nome'] = user.nome
@@ -431,12 +431,12 @@ def two_factor_verify():
                 empresa = db.session.query(Empresa).filter_by(user_id=user.id).first()
                 if empresa:
                     session['empresa_id'] = empresa.id
-            # Optionally set remember-device cookie if requested
+            # Opcionalmente, definir o cookie de memorização do dispositivo, se solicitado
             resp = redirect(url_for('home'))
             if request.form.get('remember'):
                 payload = {'uid': user.id, 'dev': _uuid4().hex}
                 token_signed = _serializer.dumps(payload)
-                # set cookie for 30 days
+                # Definir um cookie com validade de 30 dias
                 resp.set_cookie('remember_device', token_signed, max_age=60 * 60 * 24 * 30, httponly=True, samesite='Lax')
             return resp
         else:
@@ -458,7 +458,7 @@ def settings_2fa():
     if not user:
         return redirect(url_for('login'))
 
-    # ensure user has a secret saved (but not necessarily enabled yet)
+    # Garantir que o utilizador tenha um segredo guardado (mas que ainda não esteja necessariamente ativado)
     if not user.two_factor_secret:
         user.generate_2fa_secret()
         db.session.commit()
@@ -466,7 +466,7 @@ def settings_2fa():
     issuer = app.config.get('TWO_FA_ISSUER', 'Internia')
     provisioning_uri = pyotp.TOTP(user.two_factor_secret).provisioning_uri(name=user.email, issuer_name=issuer)
 
-    # create QR image as data URI
+    # Criar imagem QR como URI de dados
     img = qrcode.make(provisioning_uri)
     buf = io.BytesIO()
     img.save(buf, format='PNG')
@@ -500,21 +500,21 @@ def settings_2fa_backup():
 
     token = (request.form.get('token') or '').strip()
     valid = False
-    # accept either TOTP or an existing backup code
+    # Aceitar o TOTP ou um código de reserva já existente
     if user.verify_2fa_token(token):
         valid = True
     elif user.verify_and_consume_backup_code(token):
-        # token was a valid backup code and consumed
+        # O token era um código de segurança válido e foi utilizado
         db.session.commit()
         valid = True
 
     if not valid:
         return render_template('settings_2fa.html', qr_data_uri='', secret=user.two_factor_secret, error='Código inválido para gerar backup codes.', success=None, two_factor_enabled=user.two_factor_enabled)
 
-    # generate new backup codes and save hashed versions
+    # Gerar novos códigos de segurança e guardar versões com hash
     codes = user.generate_backup_codes()
     db.session.commit()
-    # store plaintext codes in session briefly so user can download them
+    # Armazenar os códigos em texto simples na sessão por um curto período de tempo, para que o utilizador os possa descarregar
     session['last_backup_codes'] = codes
     return render_template('settings_2fa_backup.html', codes=codes)
 
@@ -557,7 +557,7 @@ def settings_2fa_disable():
     if not valid:
         return render_template('settings_2fa.html', qr_data_uri='', secret=user.two_factor_secret, error='Código inválido para desativar 2FA.', success=None, two_factor_enabled=user.two_factor_enabled)
 
-    # disable 2FA and clear secrets/backup codes
+    # Desativar a autenticação de dois fatores e apagar os códigos secretos/de reserva
     user.two_factor_enabled = False
     user.two_factor_secret = None
     user.backup_codes = None
@@ -568,11 +568,11 @@ def settings_2fa_disable():
 @app.route('/recover-with-code', methods=['GET', 'POST'])
 @limiter.limit("5 per minute")
 def recover_with_code():
-    """Recover account using a backup code.
+    """Recuperar a conta utilizando um código de segurança.
 
-    The user provides their email and one backup code. If the code matches
-    (and is consumed) we allow them to proceed to update both email and
-    password on a dedicated page.
+    O utilizador introduz o seu endereço de e-mail e um código de segurança. Se o código corresponder
+    (e for utilizado), permitimos que avance para atualizar tanto o endereço de e-mail como
+    a palavra-passe numa página específica.
     """
     error = None
     if request.method == 'POST':
@@ -591,7 +591,7 @@ def recover_with_code():
                         db.session.commit()
                         ok = True
                 except Exception:
-                    # keep generic error
+                    # Manter erro genérico
                     ok = False
 
                 if ok:
@@ -608,11 +608,11 @@ def recover_with_code():
 @app.route('/recover-update', methods=['GET', 'POST'])
 @limiter.limit("3 per minute")
 def recover_update():
-    """After successful backup-code verification, allow changing email/password.
+    """Após a verificação bem-sucedida do código de recuperação, permita a alteração do e-mail/palavra-passe.
 
-    This route expects `session['recovery_user_id']` to be set by
-    `recover_with_code`. After successful update we clear the session key and
-    log the user in.
+    Esta rota espera que `session[‘recovery_user_id’]` seja definido pela função
+    `recover_with_code`. Após a atualização bem-sucedida, limpamos a chave de sessão e
+    iniciamos sessão para o utilizador.
     """
     uid = session.get('recovery_user_id')
     if not uid:
@@ -630,14 +630,14 @@ def recover_update():
         if not new_email or not new_pw:
             error = 'Preencha email e password.'
         else:
-            # Check uniqueness if email changed
+            # Verificar se o endereço de e-mail é único caso tenha sido alterado
             if new_email != user.email and db.session.query(User).filter_by(email=new_email).first():
                 error = 'Email já registado por outro utilizador.'
             else:
                 user.email = new_email
                 user.set_password(new_pw)
                 db.session.commit()
-                # clear recovery state and log them in
+                # Limpar o estado de recuperação e iniciar sessão
                 session.pop('recovery_user_id', None)
                 session['user_id'] = user.id
                 session['nome'] = user.nome
@@ -654,22 +654,22 @@ def recover_update():
 @app.route('/forgot', methods=['GET', 'POST'])
 @limiter.limit("5 per minute")
 def forgot():
-    """Request a password reset. If the email exists we email a time-limited
-    password reset link. For convenience (account recovery) we also generate a
-    fresh set of 2FA backup codes and include them in the email body. In
-    development the email is printed to stdout if SMTP isn't configured.
+    """Solicite a redefinição da palavra-passe. Se o endereço de e-mail existir, enviamos por e-mail um
+    link de redefinição de palavra-passe com validade limitada. Por uma questão de conveniência (recuperação da conta), também geramos um
+    novo conjunto de códigos de segurança de 2FA e incluímo-los no corpo do e-mail. Em
+    fase de desenvolvimento, o e-mail é enviado para a saída padrão (stdout) se o SMTP não estiver configurado.
     """
     info = None
     if request.method == 'POST':
         email = (request.form.get('email') or '').strip()
         if email:
             user = db.session.query(User).filter_by(email=email).first()
-            # Always show the same response to avoid leaking which emails exist
+            # Responda sempre da mesma forma para evitar revelar quais são os e-mails existentes
             info = 'Se esse email existe, enviámos instruções para o mesmo.'
             if user:
                 token = _serializer.dumps({'uid': user.id}, salt='password-reset')
                 reset_url = url_for('reset_password', token=token, _external=True)
-                # Render both plain and HTML versions of the reset email from templates
+                # Gerar versões simples e em HTML do e-mail de redefinição a partir dos modelos
                 text_body = render_template('email/reset_email.txt', reset_url=reset_url)
                 html_body = render_template('email/reset_email.html', reset_url=reset_url)
                 send_email(user.email, 'Redefinir password - Internia', (text_body, html_body))
@@ -681,7 +681,7 @@ def forgot():
 
 @app.route('/reset-password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
-    """Reset the password using a token sent by email."""
+    """Reinicie a palavra-passe utilizando um token enviado por e-mail."""
     try:
         data = _serializer.loads(token, salt='password-reset', max_age=3600)
         uid = data.get('uid')
@@ -710,7 +710,7 @@ def logout():
     """
     Rota Logout: Apaga sessão e redireciona para a página de registo.
     """
-    # Clear any pre-2fa state as well
+    # Limpe também qualquer estado anterior à autenticação de dois fatores
     session.pop('pre_2fa_user_id', None)
     session.clear()
     return redirect(url_for('registar'))
@@ -747,14 +747,14 @@ def apagar(user_id):
     if uid == session_uid_int:
         user_to_delete = db.session.get(User, uid)
         if user_to_delete:
-            # Remove user uploaded files (profile photo, CV) if present
+            # Remover os ficheiros carregados pelo utilizador (foto de perfil, CV), caso existam
             try:
                 _remove_file_if_exists(user_to_delete.foto_perfil)
                 _remove_file_if_exists(user_to_delete.cv_path)
             except Exception:
                 pass
 
-            # If the user owns a company, remove company logo and delete the empresa record
+            # Se o utilizador for proprietário de uma empresa, remova o logótipo da empresa e elimine o registo da empresa
             empresa_obj = db.session.query(Empresa).filter_by(user_id=uid).first()
             if empresa_obj:
                 try:
@@ -915,16 +915,16 @@ def novo_anuncio():
     GET: renderiza 'novo_anuncio.html'
     POST: cria o Anuncio a partir de fields do form e redireciona para o dashboard
     """
-    # If the logged-in user is not a company, redirect back to anuncios with a
-    # friendly warning message rather than returning a hard 403 page. This makes
-    # the UX clearer when someone mistakenly tries to create an ad.
+    # Se o utilizador que iniciou sessão não for uma empresa, redirecione de volta para «anúncios» com
+    # uma mensagem de aviso amigável, em vez de apresentar uma página de erro 403. Isto faz com que
+    # a experiência do utilizador fique mais clara quando alguém tenta, por engano, criar um anúncio.
     if session.get('role') != 'empresa':
-        # use flash instead of query params for nicer UX
+        # Utilizar o Flash em vez de parâmetros de consulta para uma melhor experiência do utilizador
         from flask import flash
         flash('Apenas empresas podem criar anúncios. Crie um perfil de empresa primeiro.', 'error')
         return redirect(url_for('dashboard'))
 
-    # find empresa for current user
+    # Encontrar a empresa do utilizador atual
     empresa = db.session.query(Empresa).filter_by(user_id=session.get('user_id')).first()
     if not empresa:
         return "Empresa não encontrada", 404
@@ -985,10 +985,9 @@ def home():
         - current_user: Objeto User para o utilizador da sessão (ou None)
         - user_id: id do user da sessão (or None)
     """
-    users = db.session.query(User).all()
     user_id = session.get('user_id')
     current_user = db.session.get(User, user_id) if user_id else None
-    return render_template('home.html', users=users, current_user=current_user, user_id=user_id)
+    return render_template('home.html', current_user=current_user, user_id=user_id)
 
 
 if __name__ == '__main__':

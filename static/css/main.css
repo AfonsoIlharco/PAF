@@ -73,6 +73,8 @@ input:focus, textarea:focus, select:focus{outline:none;box-shadow:0 0 6px rgba(0
 .mt-10{margin-top:10px}
 .mt-8{margin-top:8px}
 .wrap{flex-wrap:wrap}
+.radio-group{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.radio-option{display:inline-flex;align-items:center;gap:6px;margin:0}
 .text-primary{color:#374151}
 .mb-14{margin-bottom:14px}
 .mb-12{margin-bottom:12px}

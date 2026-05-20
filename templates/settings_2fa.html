@@ -13,12 +13,14 @@
       <div class="error-message">{{ error }}</div>
     {% endif %}
 
+    {% if not two_factor_enabled %}
     <p>Escaneie o QR com o seu app Authenticator (Google Authenticator, Authy, etc.) ou introduza o código manualmente.</p>
 
     <div class="card">
       <img src="{{ qr_data_uri }}" alt="QR code para 2FA" style="max-width:260px;display:block;margin-bottom:12px;"/>
       <div class="small muted">Código manual: <strong>{{ secret }}</strong></div>
     </div>
+    {% endif %}
 
     {% if not two_factor_enabled %}
       <form method="post" class="vstack">
