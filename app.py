@@ -296,10 +296,12 @@ def registar_empresa(user_id):
         morada = request.form.get('morada')
         telefone = request.form.get('telefone')
         descricao = request.form.get('descricao')
+        nif = (request.form.get('nif') or '').strip()
 
-        # Validação simples: nome da empresa obrigatório
-        if not nome_empresa:
-            return render_template('registar_empresa.html', user=user, error='Preencha o nome da empresa')
+        # Basic NIF validation: digits only, length 9
+        nif_digits = ''.join(ch for ch in nif if ch.isdigit())
+        if not nif_digits or len(nif_digits) != 9:
+            return render_template('registar_empresa.html', user=user, error='NIF inválido. Deve conter 9 dígitos.')
 
         empresa = Empresa(
             user_id=user.id,
@@ -307,7 +309,8 @@ def registar_empresa(user_id):
             email=email_empresa,
             morada=morada,
             telefone=telefone,
-            descricao=descricao
+            descricao=descricao,
+            nif=nif_digits
         )
 
         # Lidar com o carregamento opcional de logótipos (utilizar UUID para evitar conflitos)
@@ -930,14 +933,18 @@ def novo_anuncio():
         return "Empresa não encontrada", 404
 
     if request.method == 'POST':
-        titulo = (request.form.get('titulo') or '').strip()
+        tipo = (request.form.get('tipo') or '').strip()
+        categoria = (request.form.get('categoria') or '').strip()
+        local_trabalho = (request.form.get('local_trabalho') or '').strip()
         descricao = request.form.get('descricao')
         hora_entrada_str = request.form.get('hora_entrada')
         hora_saida_str = request.form.get('hora_saida')
 
-        if not titulo:
-            return render_template('novo_anuncio.html', error='Titulo obrigatório')
+        # Validate required new fields
+        if not tipo or not categoria:
+            return render_template('novo_anuncio.html', error='Tipo e Categoria obrigatórios')
 
+        # parse horas (same as before)
         hora_entrada = None
         hora_saida = None
         try:
@@ -948,8 +955,15 @@ def novo_anuncio():
         except ValueError:
             return render_template('novo_anuncio.html', error='Formato de hora inválido')
 
-        novo = Anuncio(empresa_id=empresa.id, titulo=titulo, descricao=descricao,
-                       hora_entrada=hora_entrada, hora_saida=hora_saida)
+        novo = Anuncio(
+            empresa_id=empresa.id,
+            tipo=tipo,
+            categoria=categoria,
+            local_trabalho=local_trabalho if local_trabalho else None,
+            descricao=descricao,
+            hora_entrada=hora_entrada,
+            hora_saida=hora_saida
+        )
         db.session.add(novo)
         db.session.commit()
         return redirect(url_for('dashboard'))

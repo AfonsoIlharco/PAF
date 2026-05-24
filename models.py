@@ -1,9 +1,11 @@
-from db import db
-from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
-from sqlalchemy import Boolean
-import pyotp
 import json
+from datetime import datetime
+
+import pyotp
+from werkzeug.security import generate_password_hash, check_password_hash
+
+from db import db
+
 
 class User(db.Model):
     __tablename__ = 'user'
@@ -98,6 +100,7 @@ class Empresa(db.Model):
     morada = db.Column(db.String, nullable=False)
     telefone = db.Column(db.String, nullable=False)
     descricao = db.Column(db.String, nullable=False)
+    nif = db.Column(db.String(32), nullable=True)
     logo = db.Column(db.String, nullable=True)
 
     def to_dict(self):
@@ -117,7 +120,12 @@ class Anuncio(db.Model):
     __tablename__ = 'anuncio'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False)
-    titulo = db.Column(db.String, nullable=False)
+
+    # New fields
+    tipo = db.Column(db.String(32), nullable=False)        # 'Curricular', 'Extracurricular', 'Profissional'
+    categoria = db.Column(db.String(128), nullable=False)  # e.g. 'Informática: Sistemas'
+    local_trabalho = db.Column(db.String(255), nullable=True)
+
     descricao = db.Column(db.String)
     hora_entrada = db.Column(db.Time, nullable=True)
     hora_saida = db.Column(db.Time, nullable=True)
@@ -126,19 +134,16 @@ class Anuncio(db.Model):
         return {
             "id": self.id,
             "empresa_id": self.empresa_id,
-            "titulo": self.titulo,
+            "tipo": self.tipo,
+            "categoria": self.categoria,
+            "local_trabalho": self.local_trabalho,
             "descricao": self.descricao,
-            # Converter os horários em cadeias de caracteres, se necessário:
             "hora_entrada": self.hora_entrada.strftime('%H:%M') if self.hora_entrada else None,
             "hora_saida": self.hora_saida.strftime('%H:%M') if self.hora_saida else None,
         }
 
-    empresa = db.relationship('Empresa', back_populates='anuncios')
-    # Relationship: candidaturas recebidas por este anuncio
-    candidaturas = db.relationship('Candidatura', back_populates='anuncio', cascade='all, delete-orphan')
-
     def __repr__(self):
-        return f"Anuncio(id={self.id}, titulo='{self.titulo}', empresa_id={self.empresa_id})"
+        return f"Anuncio(id={self.id}, categoria='{self.categoria}', tipo='{self.tipo}', empresa_id={self.empresa_id})"
 
 class Candidatura(db.Model):
     """

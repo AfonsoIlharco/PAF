@@ -8,8 +8,24 @@
         <form method="POST" action="{{ url_for('novo_anuncio') }}">
             <div class="vstack">
                 <div class="form-group">
-                    <label>Título</label>
-                    <input type="text" id="titulo" name="titulo" placeholder="Título" required />
+                    <label>Tipo de Estágio</label>
+                    <select id="tipo" name="tipo" required>
+                        <option value="Curricular">Curricular</option>
+                        <option value="Extracurricular">Extracurricular</option>
+                        <option value="Profissional">Profissional</option>
+                    </select></div>
+                <div class="form-group">
+                    <label>Categoria</label>
+                    <select id="categoria" name="categoria" required>
+                        <option value="Informática: Sistemas">Informática: Sistemas</option>
+                        <option value="Cozinha e Restauração">Cozinha e Restauração</option>
+                        <option value="Turismo e Hotelaria">Turismo e Hotelaria</option>
+                        <option value="Comércio, Vendas e Marketing">Comércio, Vendas e Marketing</option>
+                        <option value="Organização de Eventos">Organização de Eventos</option>
+                    </select></div>
+                <div class="form-group">
+                    <label>Local de Trabalho</label>
+                    <input type="text" id="local_trabalho" name="local_trabalho" placeholder="Local (cidade / morada)" />
                 </div>
                 <div class="form-group">
                     <label>Descrição</label>

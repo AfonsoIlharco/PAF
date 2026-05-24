@@ -14,7 +14,8 @@
                 {% for anuncio in anuncios %}
                     <li class="ad-item">
                         <div class="content">
-                            <div class="title">{{ anuncio.titulo }}</div>
+                            <div class="title">{{ anuncio.categoria }} - {{ anuncio.tipo }}</div>
+                            <div class="muted small">{{ anuncio.local_trabalho }}</div>
                             <div class="description">{{ anuncio.descricao }}</div>
                         </div>
 
