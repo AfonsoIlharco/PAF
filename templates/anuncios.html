@@ -4,10 +4,29 @@
 
 {% block content %}
     <div class="fade-up">
-        <div class="row mb-18 wrap">
-            <h1 class="no-margin">Anúncios</h1>
-            <a href="{{ url_for('novo_anuncio') }}" class="btn right">Criar Novo Anúncio</a>
-        </div>
+        <div class="row mb-12 wrap search-row">
+    <form method="GET" action="{{ url_for('dashboard') }}" class="row wrap search-form" style="gap:8px;align-items:center;">
+        <input name="q" type="search" placeholder="Pesquisar (descrição, categoria, tipo)..." value="{{ filters.q or '' }}" class="apply-input" style="min-width:220px" />
+        <select name="tipo">
+            <option value="all">Todos os Tipos</option>
+            <option value="Curricular" {% if filters.tipo=='Curricular' %}selected{% endif %}>Curricular</option>
+            <option value="Extracurricular" {% if filters.tipo=='Extracurricular' %}selected{% endif %}>Extracurricular</option>
+            <option value="Profissional" {% if filters.tipo=='Profissional' %}selected{% endif %}>Profissional</option>
+        </select>
+        <select name="categoria">
+            <option value="all">Todas as Categorias</option>
+            <option value="Informática: Sistemas" {% if filters.categoria=='Informática: Sistemas' %}selected{% endif %}>Informática: Sistemas</option>
+            <option value="Cozinha e Restauração" {% if filters.categoria=='Cozinha e Restauração' %}selected{% endif %}>Cozinha e Restauração</option>
+            <option value="Turismo e Hotelaria" {% if filters.categoria=='Turismo e Hotelaria' %}selected{% endif %}>Turismo e Hotelaria</option>
+            <option value="Comércio, Vendas e Marketing" {% if filters.categoria=='Comércio, Vendas e Marketing' %}selected{% endif %}>Comércio, Vendas e Marketing</option>
+            <option value="Organização de Eventos" {% if filters.categoria=='Organização de Eventos' %}selected{% endif %}>Organização de Eventos</option>
+        </select>
+        <input name="local_trabalho" type="text" placeholder="Local (cidade / morada)" value="{{ filters.local_trabalho or '' }}" />
+        <button class="btn" type="submit">Pesquisar</button>
+        <a class="btn" href="{{ url_for('dashboard') }}">Limpar</a>
+    </form>
+    <a href="{{ url_for('novo_anuncio') }}" class="btn right">Criar Novo Anúncio</a>
+    </div>
 
         {% if anuncios %}
             <ul class="list-reset">

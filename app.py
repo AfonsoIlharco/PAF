@@ -25,6 +25,7 @@ from werkzeug.utils import secure_filename
 from db import db
 from config import Config
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import or_
 
 from uuid import uuid4
 import pathlib
@@ -809,22 +810,36 @@ def editar(user_id):
 @app.route('/anuncios')
 @login_required
 def dashboard():
-    """
-    Dashboard que demonstra todos os anuncios.
+    q = (request.args.get('q') or '').strip()
+    tipo = (request.args.get('tipo') or '').strip()
+    categoria = (request.args.get('categoria') or '').strip()
+    local_trabalho = (request.args.get('local_trabalho') or '').strip()
 
-    Devolve:
-        - Renderiza 'anuncios.html' e passa uma lista de todos os Anuncio em BD.
-    """
-    anuncios = db.session.query(Anuncio).all()
-    user_id = session.get('user_id')
-    current_user = db.session.get(User, user_id) if user_id else None
-    # Compute a set of ad ids the current user already applied to (only relevant for normal users)
-    applied_ad_ids = set()
-    if current_user and current_user.role == 'user':
-        # Access candidaturas relationship to build set
-        applied_ad_ids = {c.anuncio_id for c in current_user.candidaturas}
+    query = db.session.query(Anuncio)
 
-    return render_template('anuncios.html', anuncios=anuncios, current_user=current_user, applied_ad_ids=applied_ad_ids)
+    if q:
+        like_q = f"%{q}%"
+        query = query.filter(
+            or_(
+                Anuncio.descricao.ilike(like_q),
+                Anuncio.categoria.ilike(like_q),
+                Anuncio.tipo.ilike(like_q)
+            )
+        )
+
+    if tipo and tipo.lower() != 'all':
+        query = query.filter(Anuncio.tipo == tipo)
+
+    if categoria and categoria.lower() != 'all':
+        query = query.filter(Anuncio.categoria == categoria)
+
+    if local_trabalho:
+        query = query.filter(Anuncio.local_trabalho.ilike(f"%{local_trabalho}%"))
+
+    anuncios = query.order_by(Anuncio.id.desc()).all()
+
+    filters = {'q': q, 'tipo': tipo, 'categoria': categoria, 'local_trabalho': local_trabalho}
+    return render_template('anuncios.html', anuncios=anuncios, current_user=current_user, applied_ad_ids=applied_ad_ids, filters=filters)
 
 
 @app.route('/dashboard/<int:ad_id>/apply', methods=['POST'])
